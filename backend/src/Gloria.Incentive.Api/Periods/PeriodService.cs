@@ -41,6 +41,27 @@ public class PeriodService
         return period?.IsClosed == true;
     }
 
+    public async Task<Period> CloseAsync(int year, int month, string closedBy, CancellationToken ct = default)
+    {
+        var period = await GetOrCreateAsync(year, month, ct);
+        if (period.IsClosed)
+            throw new ConflictException($"{year}-{month:00} dönemi zaten kapatılmış.");
+
+        var calculations = await _db.CommissionCalculations
+            .Where(c => c.Year == year && c.Month == month)
+            .ToListAsync(ct);
+
+        foreach (var calculation in calculations)
+            calculation.IsFinal = true;
+
+        period.Status = PeriodStatus.Closed;
+        period.ClosedAt = DateTime.UtcNow;
+        period.ClosedBy = closedBy;
+
+        await _db.SaveChangesAsync(ct);
+        return period;
+    }
+
     public async Task EnsureOpenAsync(DateOnly date, CancellationToken ct = default)
     {
         if (await IsClosedAsync(date.Year, date.Month, ct))
