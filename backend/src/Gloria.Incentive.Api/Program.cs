@@ -1,3 +1,4 @@
+using Gloria.Incentive.Api.Audit;
 using Gloria.Incentive.Api.Auth;
 using Gloria.Incentive.Api.Calculation;
 using Gloria.Incentive.Api.Import;
@@ -12,8 +13,10 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Default")));
+builder.Services.AddScoped<AuditSaveChangesInterceptor>();
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("Default"))
+        .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
 builder.Services.AddScoped<DataSeeder>();
 builder.Services.AddCommissionRules();
 builder.Services.AddScoped<CommissionCalculator>();
