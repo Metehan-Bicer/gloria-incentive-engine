@@ -1,0 +1,33 @@
+services:
+  api:
+    build:
+      context: ./backend
+    container_name: gloria-incentive-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Data Source=/app/db/incentive.db"
+      DataDirectory: /app/data
+      Import__AutoImportSamples: "true"
+    volumes:
+      - ./data:/app/data:ro
+      - incentive-db:/app/db
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  web:
+    build:
+      context: ./frontend
+    container_name: gloria-incentive-web
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+
+volumes:
+  incentive-db:
