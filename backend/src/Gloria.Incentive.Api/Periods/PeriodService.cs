@@ -31,8 +31,18 @@ public class PeriodService
 
         period = new Period { Year = year, Month = month, Status = PeriodStatus.Open };
         _db.Periods.Add(period);
-        await _db.SaveChangesAsync(ct);
-        return period;
+
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+            return period;
+        }
+        catch (DbUpdateException)
+        {
+            _db.Entry(period).State = EntityState.Detached;
+            return await FindAsync(year, month, ct)
+                   ?? throw new ConflictException($"{year}-{month:00} dönemi oluşturulamadı.");
+        }
     }
 
     public async Task<bool> IsClosedAsync(int year, int month, CancellationToken ct = default)

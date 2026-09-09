@@ -88,7 +88,15 @@ public class SalesController : ControllerBase
         sale.IsRefund = input.IsRefund;
         sale.UpdatedAt = DateTime.UtcNow;
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            throw new ConflictException($"{sale.SourceSystem}-{sale.ExternalDocumentNo} / {sale.ProductCode} anahtarıyla başka bir kayıt zaten var.");
+        }
+
         return ToDto(sale);
     }
 

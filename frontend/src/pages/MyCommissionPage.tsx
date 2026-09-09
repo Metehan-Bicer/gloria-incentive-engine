@@ -49,7 +49,8 @@ export function MyCommissionPage() {
   const isEmployee = session.role === 'Personel'
 
   const [employees, setEmployees] = useState<Employee[]>([])
-  const [employeeNo, setEmployeeNo] = useState(session.employeeNo)
+  const [selectedNo, setSelectedNo] = useState(session.employeeNo)
+  const employeeNo = isEmployee ? session.employeeNo : selectedNo
   const [year, setYear] = useState(DEFAULT_YEAR)
   const [month, setMonth] = useState(DEFAULT_MONTH)
   const [result, setResult] = useState<CommissionResult | null>(null)
@@ -57,19 +58,15 @@ export function MyCommissionPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isEmployee) {
-      setEmployeeNo(session.employeeNo)
-      return
-    }
+    if (isEmployee) return
     api
       .get<Employee[]>('/api/employees')
       .then((list) => {
         setEmployees(list)
-        if (!list.some((e) => e.employeeNo === employeeNo) && list.length > 0) setEmployeeNo(list[0].employeeNo)
+        setSelectedNo((current) => (list.some((e) => e.employeeNo === current) || list.length === 0 ? current : list[0].employeeNo))
       })
       .catch(() => setEmployees([]))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEmployee, session.employeeNo, session.role])
+  }, [isEmployee, session.role])
 
   const load = useCallback(async () => {
     if (!employeeNo) return
@@ -127,7 +124,7 @@ export function MyCommissionPage() {
         </div>
         <div className="toolbar">
           {!isEmployee && (
-            <select value={employeeNo} onChange={(e) => setEmployeeNo(e.target.value)} className="mono">
+            <select value={employeeNo} onChange={(e) => setSelectedNo(e.target.value)} className="mono">
               {employees.map((e) => (
                 <option key={e.employeeNo} value={e.employeeNo}>
                   {e.employeeNo} · {e.fullName} ({e.department})

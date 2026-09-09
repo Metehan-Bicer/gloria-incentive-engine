@@ -29,7 +29,7 @@ public class HeaderAuthenticationHandler : AuthenticationHandler<AuthenticationS
             return Task.FromResult(AuthenticateResult.Fail($"Unknown role '{roleValues}'."));
 
         var employeeNo = Request.Headers.TryGetValue(EmployeeNoHeader, out var noValues)
-            ? noValues.ToString().Trim()
+            ? noValues.ToString().Trim().ToUpperInvariant()
             : null;
 
         if (role == Roles.Employee && string.IsNullOrWhiteSpace(employeeNo))

@@ -4,6 +4,7 @@ using Gloria.Incentive.Api.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Gloria.Incentive.Api.Audit;
 
@@ -20,6 +21,7 @@ public class AuditSaveChangesInterceptor : SaveChangesInterceptor
 
     private readonly ICurrentUser _currentUser;
     private readonly List<PendingAudit> _pending = new();
+    private IDbContextTransaction? _ownedTransaction;
 
     public AuditSaveChangesInterceptor(ICurrentUser currentUser)
     {
@@ -28,30 +30,77 @@ public class AuditSaveChangesInterceptor : SaveChangesInterceptor
 
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
-        if (eventData.Context is not null) Collect(eventData.Context);
+        if (eventData.Context is not null && Collect(eventData.Context) && eventData.Context.Database.CurrentTransaction is null)
+            _ownedTransaction = eventData.Context.Database.BeginTransaction();
+
         return base.SavingChanges(eventData, result);
     }
 
-    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+    public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
     {
-        if (eventData.Context is not null) Collect(eventData.Context);
-        return base.SavingChangesAsync(eventData, result, cancellationToken);
+        if (eventData.Context is not null && Collect(eventData.Context) && eventData.Context.Database.CurrentTransaction is null)
+            _ownedTransaction = await eventData.Context.Database.BeginTransactionAsync(cancellationToken);
+
+        return await base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 
     public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
     {
-        if (eventData.Context is not null) Flush(eventData.Context);
+        if (eventData.Context is not null)
+        {
+            Flush(eventData.Context);
+            if (_ownedTransaction is not null)
+            {
+                _ownedTransaction.Commit();
+                _ownedTransaction.Dispose();
+                _ownedTransaction = null;
+            }
+        }
+
         return base.SavedChanges(eventData, result);
     }
 
     public override async ValueTask<int> SavedChangesAsync(SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
     {
-        if (eventData.Context is not null) await FlushAsync(eventData.Context, cancellationToken);
+        if (eventData.Context is not null)
+        {
+            await FlushAsync(eventData.Context, cancellationToken);
+            if (_ownedTransaction is not null)
+            {
+                await _ownedTransaction.CommitAsync(cancellationToken);
+                await _ownedTransaction.DisposeAsync();
+                _ownedTransaction = null;
+            }
+        }
+
         return await base.SavedChangesAsync(eventData, result, cancellationToken);
     }
 
-    private void Collect(DbContext context)
+    public override void SaveChangesFailed(DbContextErrorEventData eventData)
     {
+        Abort();
+        base.SaveChangesFailed(eventData);
+    }
+
+    public override async Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken cancellationToken = default)
+    {
+        Abort();
+        await base.SaveChangesFailedAsync(eventData, cancellationToken);
+    }
+
+    private void Abort()
+    {
+        _pending.Clear();
+        if (_ownedTransaction is null) return;
+        _ownedTransaction.Rollback();
+        _ownedTransaction.Dispose();
+        _ownedTransaction = null;
+    }
+
+    private bool Collect(DbContext context)
+    {
+        var before = _pending.Count;
+
         foreach (var entry in context.ChangeTracker.Entries())
         {
             if (!AuditedTypes.Contains(entry.Metadata.ClrType)) continue;
@@ -88,6 +137,8 @@ public class AuditSaveChangesInterceptor : SaveChangesInterceptor
 
             _pending.Add(audit);
         }
+
+        return _pending.Count > before;
     }
 
     private void Flush(DbContext context)

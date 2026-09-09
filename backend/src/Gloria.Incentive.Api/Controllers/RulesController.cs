@@ -12,7 +12,7 @@ namespace Gloria.Incentive.Api.Controllers;
 
 [ApiController]
 [Route("api/rules")]
-[Authorize(Roles = Roles.Admin)]
+[Authorize(Roles = Roles.AdminOrAccounting)]
 public class RulesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -61,7 +61,6 @@ public class RulesController : ControllerBase
     public record DepartmentDto(int Id, string Name);
 
     [HttpGet]
-    [Authorize(Roles = Roles.AdminOrAccounting)]
     public async Task<IReadOnlyList<RuleDto>> List(CancellationToken ct)
         => await _db.CommissionRules.Include(r => r.Department)
             .OrderBy(r => r.Priority).ThenBy(r => r.Id)
@@ -69,7 +68,6 @@ public class RulesController : ControllerBase
             .ToListAsync(ct);
 
     [HttpGet("options")]
-    [Authorize(Roles = Roles.AdminOrAccounting)]
     public async Task<RuleOptionsDto> Options(CancellationToken ct)
     {
         var departments = await _db.Departments.OrderBy(d => d.Name).Select(d => new DepartmentDto(d.Id, d.Name)).ToListAsync(ct);
@@ -81,7 +79,6 @@ public class RulesController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [Authorize(Roles = Roles.AdminOrAccounting)]
     public async Task<RuleDto> Get(int id, CancellationToken ct)
     {
         var rule = await _db.CommissionRules.Include(r => r.Department).FirstOrDefaultAsync(r => r.Id == id, ct)
@@ -90,6 +87,7 @@ public class RulesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<ActionResult<RuleDto>> Create(RuleInput input, CancellationToken ct)
     {
         await ValidateAsync(input, ct);
@@ -104,6 +102,7 @@ public class RulesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<RuleDto> Update(int id, RuleInput input, CancellationToken ct)
     {
         var rule = await _db.CommissionRules.FirstOrDefaultAsync(r => r.Id == id, ct)
@@ -119,6 +118,7 @@ public class RulesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         var rule = await _db.CommissionRules.FirstOrDefaultAsync(r => r.Id == id, ct)

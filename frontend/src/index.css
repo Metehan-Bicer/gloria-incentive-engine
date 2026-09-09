@@ -507,6 +507,10 @@ tr.selected td {
   color: var(--text-muted);
 }
 
+.pagination-info {
+  font-variant-numeric: tabular-nums;
+}
+
 .pagination-controls {
   display: flex;
   align-items: center;

@@ -37,6 +37,7 @@ public class DataSeeder
 
         var departments = new Dictionary<string, Department>(StringComparer.OrdinalIgnoreCase);
         var lines = await File.ReadAllLinesAsync(path, ct);
+        var count = 0;
 
         foreach (var line in lines.Skip(1))
         {
@@ -63,10 +64,11 @@ public class DataSeeder
                     ? DateOnly.ParseExact(parts[5].Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture)
                     : null
             });
+            count++;
         }
 
         await _db.SaveChangesAsync(ct);
-        _logger.LogInformation("Seeded {Count} employees from {Path}", lines.Length - 1, path);
+        _logger.LogInformation("Seeded {Count} employees from {Path}", count, path);
     }
 
     private async Task SeedRulesAsync(CancellationToken ct)

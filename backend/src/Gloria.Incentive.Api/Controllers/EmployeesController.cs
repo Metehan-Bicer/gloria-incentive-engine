@@ -43,7 +43,9 @@ public class EmployeesController : ControllerBase
     [HttpGet("{employeeNo}/commissions/{year:int}/{month:int}")]
     public async Task<CommissionResultDto> GetCommission(string employeeNo, int year, int month, CancellationToken ct)
     {
-        if (_currentUser.IsInRole(Roles.Employee) && !string.Equals(_currentUser.EmployeeNo, employeeNo, StringComparison.OrdinalIgnoreCase))
+        employeeNo = employeeNo.Trim().ToUpperInvariant();
+
+        if (_currentUser.IsInRole(Roles.Employee) && !string.Equals(_currentUser.EmployeeNo, employeeNo, StringComparison.Ordinal))
             throw new ForbiddenException("Personel yalnızca kendi prim hesabını görüntüleyebilir.");
 
         return await _calculations.GetOrCalculateAsync(employeeNo, year, month, ct);

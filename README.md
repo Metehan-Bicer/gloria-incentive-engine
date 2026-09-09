@@ -95,7 +95,7 @@ Case gereği gerçek kimlik doğrulama yerine HTTP header ile rol okunur. Her is
 | Audit log görüntüleme | ✓ | ✓ | |
 | Kendi primini görme | ✓ | ✓ | ✓ (yalnızca kendisi) |
 
-Web arayüzünde sol kenar çubuğundaki rol ve personel seçicisi bu header'ları belirler. `Personel` rolüyle başka bir sicilin hesabı istendiğinde API 403 döner.
+Web arayüzünde sol kenar çubuğundaki rol ve personel seçicisi bu header'ları belirler; gerçek bir giriş ekranının yerini tutan demo amaçlı bir seçicidir, bu yüzden personel listesini rolden bağımsız olarak doldurur. API tarafında ise `Personel` rolüyle başka bir sicilin hesabı istendiğinde 403 döner.
 
 ## Uygulama akışı
 
@@ -216,6 +216,8 @@ dotnet test
 
 GitHub Actions (`.github/workflows/ci.yml`) her push ve pull request'te backend build + test, frontend build ve Docker imaj derlemesini çalıştırır.
 
+Swagger arayüzü değerlendirme kolaylığı için Docker ortamında da açık bırakıldı; üretimde yalnızca Development ortamında etkinleştirilmesi gerekir.
+
 ## Teknik kararlar ve gerekçeleri
 
 **SQLite.** Case iki seçenek sunuyor (LocalDB veya SQLite). LocalDB yalnızca Windows'ta çalıştığından, değerlendiren kişinin platformundan bağımsız olarak `docker compose up` ya da `dotnet run` ile sıfır kurulumla çalışmasını öncelikledim. EF Core kullanıldığı için SQL Server'a geçiş provider ve connection string değişikliğinden ibaret; entity, migration ve hesaplama kodu aynı kalır. Üretim mimarisinde SQL Server öngörülüyor (bkz. mimari doküman).
@@ -228,9 +230,9 @@ GitHub Actions (`.github/workflows/ci.yml`) her push ve pull request'te backend 
 
 **Bir satış birden fazla kurala uyabilir.** Örneğin "tüm satışlara işlem başına 10 TL" ile "SPA'ya %5" birlikte tanımlanabilsin diye kurallar birbirinden bağımsız çalışır; ilk eşleşende durma yok. Kapsam alanları çakışmayı yönetmek için yeterli; ihtiyaç olursa kurala "eşleşince dur" bayrağı eklemek küçük bir değişiklik.
 
-**Hesaplama sonucu satır satır saklanır.** Sonuç yalnızca toplam olarak değil, her adım (`CommissionCalculationLines`) ile birlikte yazılır. Dönem kapandığında bu satırlar dondurulur; kural sonradan değişse bile kapalı dönemin sonucu değişmez ve geçmişe dönük izlenebilirlik korunur. Açık dönemde her görüntüleme güncel veriyle yeniden hesaplar ve önceki taslağın yerine yazar.
+**Hesaplama sonucu satır satır saklanır.** Sonuç yalnızca toplam olarak değil, her adım (`CommissionCalculationLines`) ile birlikte yazılır. Dönem kapandığında bu satırlar dondurulur; kural sonradan değişse bile kapalı dönemin sonucu değişmez ve geçmişe dönük izlenebilirlik korunur. Açık dönemde her görüntüleme güncel veriyle yeniden hesaplar ve aynı kaydı yerinde günceller. Tek instance + SQLite senaryosunda eşzamanlı istekler bir yazma kilidiyle sıraya alınır; birden fazla instance'a çıkıldığında bu kilit dağıtık bir kilitle (veritabanı satır kilidi ya da Redis) değiştirilmelidir.
 
-**Audit log `SaveChangesInterceptor` ile.** Kural, satış kaydı ve dönem değişikliklerini controller'larda elle loglamak yerine EF Core change tracker üzerinden yakalıyorum. Güncellemelerde yalnızca değişen alanların eski/yeni değeri, oluşturma ve silmede tam kayıt JSON olarak yazılır; aktör `ICurrentUser`'dan, açılıştaki otomatik import için `system` olarak gelir. Böylece hiçbir yazma yolu logu atlayamaz.
+**Audit log `SaveChangesInterceptor` ile.** Kural, satış kaydı ve dönem değişikliklerini controller'larda elle loglamak yerine EF Core change tracker üzerinden yakalıyorum. Güncellemelerde yalnızca değişen alanların eski/yeni değeri, oluşturma ve silmede tam kayıt JSON olarak yazılır; aktör `ICurrentUser`'dan, açılıştaki otomatik import için `system` olarak gelir. Audit satırları asıl değişiklikle aynı transaction içinde yazılır: log yazılamazsa değişiklik de geri alınır. Böylece hiçbir yazma yolu logu atlayamaz.
 
 **Dönem kapama, silme yerine durum.** Kapalı dönem için satış düzenleme, import ve yeniden hesaplama 409 döner. Kapatma öncesi hesaplama bir kez daha çalıştırılır ki dondurulan sonuç son veriyi yansıtsın. Yeniden açma bilinçli olarak yok; case "kapatıldıktan sonra değiştirilememeli" diyor.
 

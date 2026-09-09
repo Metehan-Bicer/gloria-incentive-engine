@@ -94,7 +94,7 @@ Her kaynak için aynı beş adım:
 - Aktarım işleri zamanlayıcı (Hangfire, Quartz ya da Azure Functions timer) ile tetiklenir; her çalıştırma `ImportBatch` kaydı ile izlenir: başlangıç, bitiş, okunan / yazılan / reddedilen satır sayısı.
 - Staging ve ana tablolar aynı veritabanında ama ayrı şemalarda tutulur; ana tablolara yazma yetkisi yalnızca ETL servisindedir.
 
-**Kodda karşılığı:** `Import/` altındaki kaynak parser'ları (adaptör), `CsvImportService` (doğrulama, mükerrer kontrolü, `ImportBatch` / `ImportError` tabloları), `ProductCatalog` (ürün ve iş birimi eşlemesi). Staging tablosu ve zamanlayıcı bu dilimde yoktur; CSV yükleme adaptörün dosya tabanlı halidir.
+**Kodda karşılığı:** `Import/` altındaki kaynak parser'ları (adaptör), `CsvImportService` (doğrulama, mükerrer kontrolü, `ImportBatch` / `ImportError` tabloları), `ProductCatalog` (ürün ve iş birimi eşlemesi). Mükerrer anahtarı üç kaynak için de `(kaynak, belge no, ürün kodu)` olarak uygulanır; ERP'de ürün kodu açıklamadan türetilir. Staging tablosu ve zamanlayıcı bu dilimde yoktur; CSV yükleme adaptörün dosya tabanlı halidir.
 
 ## 3. Esnek prim motoru (Rules Engine)
 
@@ -216,7 +216,7 @@ Her yazma işlemi için **kim, ne zaman, hangi kayıt, eski değer, yeni değer*
 - Uygulama veritabanına en az yetkiyle bağlanır: ETL hesabı yalnızca staging ve satış tablolarına yazar, API hesabı audit tablosunda yalnızca ekleme yapabilir, raporlama hesabı salt okunurdur.
 - Sırlar kasada; loglarda kişisel veri ve tutar maskelenir.
 
-**Kodda karşılığı:** header tabanlı rol kontrolü ve veri sahipliği (`Auth/`, controller'lardaki `[Authorize]` ve personel sicil kontrolü), `AuditSaveChangesInterceptor` ile kural / satış / dönem değişikliklerinin eski-yeni değerle loglanması, dönem kapatma ve kapalı dönemde 409 ile engellenen yazma yolları, hesaplama adımlarının kalıcı saklanması, reddedilen satırların ham haliyle tutulması. Kimlik sağlayıcı, hash zinciri, onay akışı ve merkezi log bu dilimin dışındadır.
+**Kodda karşılığı:** header tabanlı rol kontrolü ve veri sahipliği (`Auth/`, controller'lardaki `[Authorize]` ve personel sicil kontrolü), `AuditSaveChangesInterceptor` ile kural / satış / dönem değişikliklerinin eski-yeni değerle ve aynı transaction içinde loglanması, dönem kapatma ve kapalı dönemde 409 ile engellenen yazma yolları, hesaplama adımlarının kalıcı saklanması, reddedilen satırların ham haliyle tutulması. Bu dilimde açık dönemdeki yeniden hesaplama önceki taslağı yerinde günceller (sonuç sürümleme yoktur); kesin sonuç dönem kapatılınca dondurulur. Kimlik sağlayıcı, hash zinciri, onay akışı ve merkezi log bu dilimin dışındadır.
 
 ## 5. Üretim ortamı için öngörüler
 

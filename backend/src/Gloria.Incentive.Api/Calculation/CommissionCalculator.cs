@@ -108,7 +108,7 @@ public class CommissionCalculator
             BaseAmount = result.GrossSales - result.RefundTotal,
             Amount = result.TotalCommission,
             Description = total < 0
-                ? $"Kural toplamı negatif ({total:N2}), prim sıfırlandı"
+                ? $"Kural toplamı negatif ({Money.Format(total)}), prim sıfırlandı"
                 : $"{year}-{month:00} dönemi toplam prim"
         });
 

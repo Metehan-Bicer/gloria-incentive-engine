@@ -30,8 +30,8 @@ public class PmsParser : ISourceParser
             _ => throw new RowParseException($"Bilinmeyen işlem tipi: {transactionType}")
         };
 
-        if (amount == 0)
-            throw new RowParseException("Tutar sıfır");
+        if (quantity == 0 || amount == 0)
+            throw new RowParseException("Adet veya tutar sıfır");
         if (!isRefund && amount < 0)
             throw new RowParseException("POSTING satırında negatif tutar");
 

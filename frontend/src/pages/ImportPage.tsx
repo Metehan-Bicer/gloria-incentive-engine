@@ -20,6 +20,7 @@ export function ImportPage() {
   const { session } = useSession()
   const [source, setSource] = useState<SourceSystem>('PMS')
   const [file, setFile] = useState<File | null>(null)
+  const [fileInputKey, setFileInputKey] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [batches, setBatches] = useState<ImportBatch[]>([])
   const [drawer, setDrawer] = useState<DrawerState>({ mode: 'closed' })
@@ -73,6 +74,7 @@ export function ImportPage() {
       const res = await api.upload<ImportResult>(`/api/import/${source.toLowerCase()}`, file)
       setResult(res)
       setFile(null)
+      setFileInputKey((k) => k + 1)
       await loadBatches()
       setDrawer({ mode: 'batch', batch: res.batch })
     } catch (err) {
@@ -234,7 +236,7 @@ export function ImportPage() {
               onDragLeave={() => setDragging(false)}
               onDrop={onDrop}
             >
-              <input type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              <input key={fileInputKey} type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
               {file ? (
                 <>
                   <strong>{file.name}</strong>

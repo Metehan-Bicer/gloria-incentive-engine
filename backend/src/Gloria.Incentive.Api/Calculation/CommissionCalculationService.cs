@@ -9,6 +9,8 @@ namespace Gloria.Incentive.Api.Calculation;
 
 public class CommissionCalculationService
 {
+    private static readonly SemaphoreSlim WriteLock = new(1, 1);
+
     private readonly AppDbContext _db;
     private readonly CommissionCalculator _calculator;
     private readonly PeriodService _periods;
@@ -30,7 +32,7 @@ public class CommissionCalculationService
             .FirstOrDefaultAsync(e => e.EmployeeNo == employeeNo, ct)
             ?? throw new NotFoundException($"Personel bulunamadı: {employeeNo}");
 
-        var period = await _periods.GetOrCreateAsync(year, month, ct);
+        var period = await _periods.FindAsync(year, month, ct) ?? new Period { Year = year, Month = month };
 
         if (period.IsClosed)
         {
@@ -43,8 +45,18 @@ public class CommissionCalculationService
             return await ToDtoAsync(employee, period, frozen, ct);
         }
 
-        var calculation = await CalculateAndStoreAsync(employee, year, month, ct);
-        await _db.SaveChangesAsync(ct);
+        await WriteLock.WaitAsync(ct);
+        CommissionCalculation calculation;
+        try
+        {
+            calculation = await CalculateAndStoreAsync(employee, year, month, ct);
+            await _db.SaveChangesAsync(ct);
+        }
+        finally
+        {
+            WriteLock.Release();
+        }
+
         return await ToDtoAsync(employee, period, calculation, ct);
     }
 
@@ -55,10 +67,20 @@ public class CommissionCalculationService
             throw new ConflictException($"{year}-{month:00} dönemi kapatılmış, yeniden hesaplama yapılamaz.");
 
         var employees = await _db.Employees.Include(e => e.Department).OrderBy(e => e.EmployeeNo).ToListAsync(ct);
-        foreach (var employee in employees)
-            await CalculateAndStoreAsync(employee, year, month, ct);
 
-        await _db.SaveChangesAsync(ct);
+        await WriteLock.WaitAsync(ct);
+        try
+        {
+            foreach (var employee in employees)
+                await CalculateAndStoreAsync(employee, year, month, ct);
+
+            await _db.SaveChangesAsync(ct);
+        }
+        finally
+        {
+            WriteLock.Release();
+        }
+
         return await GetPeriodSummaryAsync(year, month, ct);
     }
 
@@ -106,37 +128,41 @@ public class CommissionCalculationService
 
         var result = _calculator.Calculate(employee, sales, rules, year, month);
 
-        var existing = await LoadCalculationAsync(employee.Id, year, month, ct);
-        if (existing is not null)
-            _db.CommissionCalculations.Remove(existing);
-
-        var calculation = new CommissionCalculation
+        var calculation = await LoadCalculationAsync(employee.Id, year, month, ct);
+        if (calculation is null)
         {
-            EmployeeId = employee.Id,
-            Employee = employee,
-            Year = year,
-            Month = month,
-            GrossSales = result.GrossSales,
-            RefundTotal = result.RefundTotal,
-            TotalCommission = result.TotalCommission,
-            CalculatedAt = DateTime.UtcNow,
-            CalculatedBy = _currentUser.DisplayName,
-            IsFinal = false,
-            Lines = result.Lines.Select(l => new CommissionCalculationLine
-            {
-                Sequence = l.Sequence,
-                LineType = l.LineType,
-                SaleRecordId = l.SaleRecordId,
-                RuleId = l.RuleId,
-                RuleName = l.RuleName,
-                BaseAmount = l.BaseAmount,
-                Rate = l.Rate,
-                Amount = l.Amount,
-                Description = l.Description
-            }).ToList()
-        };
+            calculation = new CommissionCalculation { EmployeeId = employee.Id, Employee = employee, Year = year, Month = month };
+            _db.CommissionCalculations.Add(calculation);
+        }
+        else
+        {
+            _db.CommissionCalculationLines.RemoveRange(calculation.Lines);
+            calculation.Lines.Clear();
+        }
 
-        _db.CommissionCalculations.Add(calculation);
+        calculation.GrossSales = result.GrossSales;
+        calculation.RefundTotal = result.RefundTotal;
+        calculation.TotalCommission = result.TotalCommission;
+        calculation.CalculatedAt = DateTime.UtcNow;
+        calculation.CalculatedBy = _currentUser.DisplayName;
+        calculation.IsFinal = false;
+
+        foreach (var line in result.Lines)
+        {
+            calculation.Lines.Add(new CommissionCalculationLine
+            {
+                Sequence = line.Sequence,
+                LineType = line.LineType,
+                SaleRecordId = line.SaleRecordId,
+                RuleId = line.RuleId,
+                RuleName = line.RuleName,
+                BaseAmount = line.BaseAmount,
+                Rate = line.Rate,
+                Amount = line.Amount,
+                Description = line.Description
+            });
+        }
+
         return calculation;
     }
 
