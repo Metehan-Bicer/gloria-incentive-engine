@@ -26,7 +26,8 @@ public enum CalculationLineType
     Refund = 2,
     Excluded = 3,
     RuleSubtotal = 4,
-    Total = 5
+    Total = 5,
+    Tier = 6
 }
 
 public enum AuditAction

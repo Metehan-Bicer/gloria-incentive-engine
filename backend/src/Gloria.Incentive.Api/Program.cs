@@ -1,5 +1,6 @@
 using Gloria.Incentive.Api.Auth;
 using Gloria.Incentive.Api.Data;
+using Gloria.Incentive.Api.Rules;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
@@ -9,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddScoped<DataSeeder>();
+builder.Services.AddCommissionRules();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
