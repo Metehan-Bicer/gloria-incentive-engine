@@ -1,4 +1,7 @@
 using Gloria.Incentive.Api.Auth;
+using Gloria.Incentive.Api.Calculation;
+using Gloria.Incentive.Api.Infrastructure;
+using Gloria.Incentive.Api.Periods;
 using Gloria.Incentive.Api.Data;
 using Gloria.Incentive.Api.Rules;
 using Microsoft.AspNetCore.Authentication;
@@ -11,6 +14,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddScoped<DataSeeder>();
 builder.Services.AddCommissionRules();
+builder.Services.AddScoped<CommissionCalculator>();
+builder.Services.AddScoped<CommissionCalculationService>();
+builder.Services.AddScoped<PeriodService>();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
@@ -19,7 +27,7 @@ builder.Services
     .AddScheme<AuthenticationSchemeOptions, HeaderAuthenticationHandler>(HeaderAuthenticationHandler.SchemeName, null);
 builder.Services.AddAuthorization();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -45,6 +53,8 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 using (var scope = app.Services.CreateScope())
 {
