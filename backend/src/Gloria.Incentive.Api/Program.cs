@@ -1,5 +1,7 @@
 using Gloria.Incentive.Api.Auth;
 using Gloria.Incentive.Api.Calculation;
+using Gloria.Incentive.Api.Import;
+using Gloria.Incentive.Api.Import.Parsers;
 using Gloria.Incentive.Api.Infrastructure;
 using Gloria.Incentive.Api.Periods;
 using Gloria.Incentive.Api.Data;
@@ -17,6 +19,11 @@ builder.Services.AddCommissionRules();
 builder.Services.AddScoped<CommissionCalculator>();
 builder.Services.AddScoped<CommissionCalculationService>();
 builder.Services.AddScoped<PeriodService>();
+builder.Services.AddSingleton<ISourceParser, PmsParser>();
+builder.Services.AddSingleton<ISourceParser, PosParser>();
+builder.Services.AddSingleton<ISourceParser, ErpParser>();
+builder.Services.AddScoped<CsvImportService>();
+builder.Services.AddScoped<SampleDataImporter>();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddProblemDetails();
 
@@ -61,6 +68,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
     await scope.ServiceProvider.GetRequiredService<DataSeeder>().SeedAsync();
+    await scope.ServiceProvider.GetRequiredService<SampleDataImporter>().ImportIfEmptyAsync();
 }
 
 app.UseSwagger();

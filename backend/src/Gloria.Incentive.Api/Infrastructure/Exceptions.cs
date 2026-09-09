@@ -21,9 +21,9 @@ public class ConflictException : Exception
     }
 }
 
-public class ValidationException : Exception
+public class BadRequestException : Exception
 {
-    public ValidationException(string message) : base(message)
+    public BadRequestException(string message) : base(message)
     {
     }
 }

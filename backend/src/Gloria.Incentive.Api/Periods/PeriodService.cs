@@ -17,7 +17,7 @@ public class PeriodService
     public static void ValidateYearMonth(int year, int month)
     {
         if (year < 2000 || year > 2100 || month < 1 || month > 12)
-            throw new ValidationException("Geçersiz dönem. Yıl 2000-2100, ay 1-12 aralığında olmalıdır.");
+            throw new BadRequestException("Geçersiz dönem. Yıl 2000-2100, ay 1-12 aralığında olmalıdır.");
     }
 
     public Task<Period?> FindAsync(int year, int month, CancellationToken ct = default)

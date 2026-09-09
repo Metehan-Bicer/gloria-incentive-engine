@@ -20,7 +20,7 @@ public class ApiExceptionHandler : IExceptionHandler
             NotFoundException => (StatusCodes.Status404NotFound, "Kayıt bulunamadı"),
             ForbiddenException => (StatusCodes.Status403Forbidden, "Yetkisiz işlem"),
             ConflictException => (StatusCodes.Status409Conflict, "İşlem çakışması"),
-            ValidationException => (StatusCodes.Status400BadRequest, "Geçersiz istek"),
+            BadRequestException => (StatusCodes.Status400BadRequest, "Geçersiz istek"),
             RuleParameterException => (StatusCodes.Status400BadRequest, "Geçersiz kural parametresi"),
             _ => (StatusCodes.Status500InternalServerError, "Beklenmeyen hata")
         };
