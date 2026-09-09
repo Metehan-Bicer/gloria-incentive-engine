@@ -1,0 +1,21 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.db
+*.db-shm
+*.db-wal
+TestResults/
+
+# Node
+node_modules/
+dist/
+*.local
+npm-debug.log*
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
