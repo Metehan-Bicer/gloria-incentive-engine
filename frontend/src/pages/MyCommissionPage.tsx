@@ -125,7 +125,7 @@ export function MyCommissionPage() {
         </div>
         <div className="toolbar">
           {!isEmployee && (
-            <select value={employeeNo} onChange={(e) => setEmployeeNo(e.target.value)} className="mono" style={{ padding: '0.5rem' }}>
+            <select value={employeeNo} onChange={(e) => setEmployeeNo(e.target.value)} className="mono">
               {employees.map((e) => (
                 <option key={e.employeeNo} value={e.employeeNo}>
                   {e.employeeNo} · {e.fullName} ({e.department})
@@ -133,14 +133,14 @@ export function MyCommissionPage() {
               ))}
             </select>
           )}
-          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} style={{ padding: '0.5rem' }}>
+          <select value={month} onChange={(e) => setMonth(Number(e.target.value))}>
             {MONTHS.map((m, i) => (
               <option key={m} value={i + 1}>
                 {m}
               </option>
             ))}
           </select>
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))} style={{ padding: '0.5rem' }}>
+          <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
             {years.map((y) => (
               <option key={y} value={y}>
                 {y}

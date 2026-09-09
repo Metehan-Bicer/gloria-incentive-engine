@@ -187,7 +187,7 @@ export function RulesPage() {
                     <td>{typeLabels[rule.ruleType] ?? rule.ruleType}</td>
                     <td>{describeParameters(rule)}</td>
                     <td>{describeScope(rule)}</td>
-                    <td>
+                    <td className="nowrap">
                       {formatDate(rule.validFrom)}
                       {rule.validTo ? ` – ${formatDate(rule.validTo)}` : ' →'}
                     </td>
