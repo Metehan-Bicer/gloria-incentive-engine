@@ -95,7 +95,7 @@ Case gereği gerçek kimlik doğrulama yerine HTTP header ile rol okunur. Her is
 | Audit log görüntüleme | ✓ | ✓ | |
 | Kendi primini görme | ✓ | ✓ | ✓ (yalnızca kendisi) |
 
-Web arayüzünde üst çubuktaki rol ve personel seçicisi bu header'ları belirler. `Personel` rolüyle başka bir sicilin hesabı istendiğinde API 403 döner.
+Web arayüzünde sol kenar çubuğundaki rol ve personel seçicisi bu header'ları belirler. `Personel` rolüyle başka bir sicilin hesabı istendiğinde API 403 döner.
 
 ## Uygulama akışı
 
@@ -244,7 +244,7 @@ GitHub Actions (`.github/workflows/ci.yml`) her push ve pull request'te backend 
 
 **Kaynaklar arası eşleştirme yapılmıyor.** ERP `Reference` alanında `PMS-xxxx` değerleri var ama örnek veride tutarlar ve personeller PMS kayıtlarıyla örtüşmüyor. Bu yüzden her kaynak bağımsız satış kaynağı olarak ele alındı; mükerrer kontrolü kaynak içinde yapılır. Gerçek entegrasyonda hangi kaynağın "otorite" olduğu iş kuralıyla belirlenip çapraz dedup eklenmelidir.
 
-**Frontend sade tutuldu.** UI kütüphanesi yok, yalnızca React Router ve el yazımı CSS. Case'in istediği iki ekranın (kural yönetimi, personel prim görüntüleme) yanına, akışın uçtan uca gösterilebilmesi için dönem ve aktarım ekranları eklendi.
+**Frontend sade tutuldu.** UI kütüphanesi yok, yalnızca React Router ve el yazımı CSS; tek yazı tipi (Inter) ve tek renk paleti kullanılır. Düzen sol kenar çubuklu, tüm ekleme/düzenleme ve detay alanları sayfanın sağından açılan panelde (drawer) çalışır; böylece liste görünümü hiç bozulmaz. Case'in istediği iki ekranın (kural yönetimi, personel prim görüntüleme) yanına, akışın uçtan uca gösterilebilmesi için dönem ve aktarım ekranları eklendi. Mobil ve masaüstü için duyarlı tasarım uygulandı.
 
 ## Proje yapısı
 

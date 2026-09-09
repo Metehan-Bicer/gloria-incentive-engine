@@ -1,22 +1,36 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import type { Employee, Role } from '../api/types'
 import { useSession } from '../auth/SessionContext'
+import { Icons } from './Icons'
 
-const ROLES: { value: Role; label: string }[] = [
-  { value: 'Admin', label: 'Admin' },
-  { value: 'Muhasebe', label: 'Muhasebe' },
-  { value: 'Personel', label: 'Personel' },
+const ROLES: { value: Role; label: string; description: string }[] = [
+  { value: 'Admin', label: 'Admin', description: 'Kuralları yönetir, tüm verilere erişir.' },
+  { value: 'Muhasebe', label: 'Muhasebe', description: 'Tüm personelin primini görür, dönemi kapatır.' },
+  { value: 'Personel', label: 'Personel', description: 'Yalnızca kendi prim hesabını görür.' },
 ]
+
+function Brand() {
+  return (
+    <NavLink to="/" className="sidebar-brand">
+      <span className="brand-mark">G</span>
+      <span>
+        <div className="brand-name">Gloria Hotels &amp; Resorts</div>
+        <div className="brand-sub">Personel Prim Sistemi</div>
+      </span>
+    </NavLink>
+  )
+}
 
 export function Layout() {
   const { session, update } = useSession()
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [menuOpen, setMenuOpen] = useState(false)
+  const location = useLocation()
 
   useEffect(() => {
     let cancelled = false
-    const headers = new Headers({ 'X-Role': 'Muhasebe' })
-    fetch('/api/employees', { headers })
+    fetch('/api/employees', { headers: { 'X-Role': 'Muhasebe' } })
       .then((r) => (r.ok ? r.json() : []))
       .then((list: Employee[]) => {
         if (!cancelled) setEmployees(list)
@@ -27,45 +41,81 @@ export function Layout() {
     }
   }, [])
 
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname])
+
   const canManage = session.role !== 'Personel'
+  const role = ROLES.find((r) => r.value === session.role)
 
   return (
-    <>
-      <header className="topbar">
-        <NavLink to="/" className="brand">
-          <span className="brand-mark">G</span>
-          Gloria Prim Sistemi
-        </NavLink>
-        <nav className="nav">
-          <NavLink to="/primlerim">Prim Hesabı</NavLink>
-          {canManage && <NavLink to="/kurallar">Prim Kuralları</NavLink>}
-          {canManage && <NavLink to="/donemler">Dönemler</NavLink>}
-          {canManage && <NavLink to="/aktarim">Veri Aktarımı</NavLink>}
-        </nav>
-        <div className="session">
-          <label htmlFor="role">Rol</label>
-          <select id="role" value={session.role} onChange={(e) => update({ role: e.target.value as Role })}>
-            {ROLES.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-          <label htmlFor="employee">Personel</label>
-          <select id="employee" value={session.employeeNo} onChange={(e) => update({ employeeNo: e.target.value })}>
-            {employees.length === 0 && <option value={session.employeeNo}>{session.employeeNo}</option>}
-            {employees.map((e) => (
-              <option key={e.employeeNo} value={e.employeeNo}>
-                {e.employeeNo} · {e.fullName}
-              </option>
-            ))}
-          </select>
-        </div>
+    <div className="shell">
+      <header className="mobile-header">
+        <Brand />
+        <button type="button" className="icon-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Menü">
+          {menuOpen ? <Icons.close /> : <Icons.menu />}
+        </button>
       </header>
-      <main className="page">
-        <Outlet />
-      </main>
-    </>
+
+      {menuOpen && <div className="sidebar-backdrop" onClick={() => setMenuOpen(false)} />}
+
+      <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
+        <Brand />
+        <nav className="sidebar-nav">
+          <div className="sidebar-section">Prim</div>
+          <NavLink to="/primlerim">
+            <Icons.wallet />
+            Prim Hesabı
+          </NavLink>
+          {canManage && (
+            <>
+              <NavLink to="/kurallar">
+                <Icons.rules />
+                Prim Kuralları
+              </NavLink>
+              <div className="sidebar-section">Yönetim</div>
+              <NavLink to="/donemler">
+                <Icons.calendar />
+                Dönemler
+              </NavLink>
+              <NavLink to="/aktarim">
+                <Icons.upload />
+                Veri Aktarımı
+              </NavLink>
+            </>
+          )}
+        </nav>
+        <div className="sidebar-session">
+          <div>
+            <label htmlFor="role">Oturum rolü</label>
+            <select id="role" value={session.role} onChange={(e) => update({ role: e.target.value as Role })}>
+              {ROLES.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="employee">Personel</label>
+            <select id="employee" value={session.employeeNo} onChange={(e) => update({ employeeNo: e.target.value })}>
+              {employees.length === 0 && <option value={session.employeeNo}>{session.employeeNo}</option>}
+              {employees.map((e) => (
+                <option key={e.employeeNo} value={e.employeeNo}>
+                  {e.employeeNo} · {e.fullName}
+                </option>
+              ))}
+            </select>
+          </div>
+          {role && <div className="hint">{role.description}</div>}
+        </div>
+      </aside>
+
+      <div className="content">
+        <main className="page">
+          <Outlet />
+        </main>
+      </div>
+    </div>
   )
 }
-

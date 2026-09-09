@@ -3,6 +3,7 @@ import { api, ApiError } from '../api/client'
 import type { CalculationLine, CommissionResult, Employee } from '../api/types'
 import { useSession } from '../auth/SessionContext'
 import { Alert } from '../components/Alert'
+import { Icons } from '../components/Icons'
 import { MONTHS, formatDate, formatDateTime, money, percent, periodLabel } from '../format'
 
 const DEFAULT_YEAR = 2026
@@ -148,6 +149,7 @@ export function MyCommissionPage() {
             ))}
           </select>
           <button onClick={load} disabled={loading}>
+            <Icons.refresh />
             Yenile
           </button>
         </div>
@@ -157,26 +159,30 @@ export function MyCommissionPage() {
 
       {result && (
         <>
-          <div className="card" style={{ padding: '0.9rem 1.25rem' }}>
-            <div className="toolbar" style={{ justifyContent: 'space-between' }}>
+          <div className="card card-flush">
+            <div className="summary-bar">
               <div>
-                <strong>{result.fullName}</strong> <span className="muted">· {result.employeeNo} · {result.department} · {result.hotelCode}</span>
+                <span className="title">{result.fullName}</span>
+                <span className="meta"> · {result.employeeNo} · {result.department} · {result.hotelCode}</span>
               </div>
               <div className="inline-list">
                 <span className="badge badge-info">{periodLabel(result.year, result.month)}</span>
                 {result.periodClosed ? (
-                  <span className="badge badge-closed">Dönem kapalı · sonuç dondurulmuş</span>
+                  <span className="badge badge-closed">
+                    <Icons.lock width={12} height={12} />
+                    Dönem kapalı · sonuç dondurulmuş
+                  </span>
                 ) : (
-                  <span className="badge badge-open">Dönem açık · her görüntülemede güncel hesap</span>
+                  <span className="badge badge-open">Dönem açık · güncel hesap</span>
                 )}
-                <span className="muted" style={{ fontSize: '0.85rem' }}>
+                <span className="meta">
                   Hesaplama: {formatDateTime(result.calculatedAt)} ({result.calculatedBy})
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-stats" style={{ marginBottom: '1.25rem' }}>
+          <div className="grid grid-stats">
             <div className="stat">
               <div className="stat-label">Brüt satış</div>
               <div className="stat-value">{money(result.grossSales)}</div>
@@ -195,7 +201,7 @@ export function MyCommissionPage() {
             </div>
           </div>
 
-          <div className="card">
+          <div className="card card-flush">
             <div className="card-header">
               <h2>Kural bazında özet</h2>
             </div>
@@ -230,7 +236,7 @@ export function MyCommissionPage() {
           </div>
 
           {grouped.map((group) => (
-            <div className="card" key={group.key}>
+            <div className="card card-flush" key={group.key}>
               <div className="card-header">
                 <h2>{group.title}</h2>
                 <span className="muted">{group.lines.filter((l) => l.sale).length > 0 ? `${group.lines.filter((l) => l.sale).length} kayıt` : ''}</span>
@@ -259,7 +265,7 @@ export function MyCommissionPage() {
                         <td className="mono">{line.sale ? `${line.sale.sourceSystem}-${line.sale.externalDocumentNo}` : ''}</td>
                         <td>
                           {line.sale ? line.sale.productName : ''}
-                          {line.sale && <div className="muted mono">{line.sale.productCode}</div>}
+                          {line.sale && <span className="sub">{line.sale.productCode}</span>}
                         </td>
                         <td>{line.description}</td>
                         <td className="num">{line.lineType === 'Total' || line.lineType === 'RuleSubtotal' || line.lineType === 'Tier' || line.sale ? money(line.baseAmount) : ''}</td>
