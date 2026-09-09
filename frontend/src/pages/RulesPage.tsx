@@ -5,6 +5,7 @@ import { useSession } from '../auth/SessionContext'
 import { Alert } from '../components/Alert'
 import { Drawer } from '../components/Drawer'
 import { Icons } from '../components/Icons'
+import { Pagination, usePagination } from '../components/Pagination'
 import { formatDate, formatDateTime } from '../format'
 import { RuleForm } from './RuleForm'
 
@@ -54,6 +55,7 @@ export function RulesPage() {
   const [saving, setSaving] = useState(false)
 
   const isAdmin = session.role === 'Admin'
+  const paging = usePagination(rules, 10)
   const editing = drawer.mode === 'edit' ? drawer.rule : null
 
   const load = useCallback(async () => {
@@ -176,7 +178,7 @@ export function RulesPage() {
               </tr>
             </thead>
             <tbody>
-              {rules.map((rule) => (
+              {paging.slice.map((rule) => (
                 <tr key={rule.id} className={`clickable ${editing?.id === rule.id ? 'selected' : ''}`} onClick={() => setDrawer({ mode: 'edit', rule })}>
                   <td className="num">{rule.priority}</td>
                   <td>
@@ -217,6 +219,7 @@ export function RulesPage() {
             </tbody>
           </table>
         </div>
+        <Pagination state={paging} label="kural" />
       </div>
 
       <Drawer

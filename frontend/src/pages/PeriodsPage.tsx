@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, ApiError } from '../api/client'
 import type { Period, PeriodSummary } from '../api/types'
 import { useSession } from '../auth/SessionContext'
 import { Alert } from '../components/Alert'
 import { Drawer } from '../components/Drawer'
 import { Icons } from '../components/Icons'
+import { Pagination, usePagination } from '../components/Pagination'
 import { formatDateTime, money, periodLabel } from '../format'
 
 export function PeriodsPage() {
@@ -16,6 +17,10 @@ export function PeriodsPage() {
   const [drawerError, setDrawerError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const periodPaging = usePagination(periods, 10)
+  const employeeRows = useMemo(() => summary?.employees ?? [], [summary])
+  const employeePaging = usePagination(employeeRows, 10)
 
   const loadPeriods = useCallback(async () => {
     try {
@@ -149,7 +154,7 @@ export function PeriodsPage() {
               </tr>
             </thead>
             <tbody>
-              {periods.map((p) => (
+              {periodPaging.slice.map((p) => (
                 <tr
                   key={`${p.year}-${p.month}`}
                   className={`clickable ${selected && selected.year === p.year && selected.month === p.month ? 'selected' : ''}`}
@@ -187,6 +192,7 @@ export function PeriodsPage() {
             </tbody>
           </table>
         </div>
+        <Pagination state={periodPaging} label="dönem" />
       </div>
 
       <Drawer
@@ -242,7 +248,7 @@ export function PeriodsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {summary.employees.map((e) => (
+                    {employeePaging.slice.map((e) => (
                       <tr key={e.employeeNo}>
                         <td>
                           {e.fullName}
@@ -262,12 +268,13 @@ export function PeriodsPage() {
                       </tr>
                     ))}
                     <tr className="row-total">
-                      <td colSpan={4}>Toplam</td>
+                      <td colSpan={4}>Toplam ({summary.employees.length} personel)</td>
                       <td className="num">{money(summary.totalCommission)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+              <Pagination state={employeePaging} label="personel" />
             </div>
           </>
         )}

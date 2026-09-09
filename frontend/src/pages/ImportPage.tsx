@@ -5,6 +5,7 @@ import { useSession } from '../auth/SessionContext'
 import { Alert } from '../components/Alert'
 import { Drawer } from '../components/Drawer'
 import { Icons } from '../components/Icons'
+import { Pagination, usePagination } from '../components/Pagination'
 import { formatDateTime } from '../format'
 
 const SOURCES: { value: SourceSystem; label: string; hint: string }[] = [
@@ -29,6 +30,8 @@ export function ImportPage() {
   const [busy, setBusy] = useState(false)
 
   const selectedBatch = drawer.mode === 'batch' ? drawer.batch : null
+  const batchPaging = usePagination(batches, 10)
+  const errorPaging = usePagination(errors, 10)
 
   const loadBatches = useCallback(async () => {
     try {
@@ -158,7 +161,7 @@ export function ImportPage() {
               </tr>
             </thead>
             <tbody>
-              {batches.map((b) => (
+              {batchPaging.slice.map((b) => (
                 <tr key={b.id} className={`clickable ${selectedBatch?.id === b.id ? 'selected' : ''}`} onClick={() => setDrawer({ mode: 'batch', batch: b })}>
                   <td className="num">{b.id}</td>
                   <td>
@@ -188,6 +191,7 @@ export function ImportPage() {
             </tbody>
           </table>
         </div>
+        <Pagination state={batchPaging} label="aktarım" />
       </div>
 
       <Drawer
@@ -283,7 +287,7 @@ export function ImportPage() {
               <div className="form-section-title">Reddedilen satırlar · {errors.length} kayıt</div>
               {errors.length === 0 && <div className="muted">Bu aktarımda reddedilen satır yok.</div>}
               <div className="timeline">
-                {errors.map((e) => (
+                {errorPaging.slice.map((e) => (
                   <div key={e.id} className="timeline-item">
                     <div className="inline-list">
                       <span className={`badge ${e.isDuplicate ? 'badge-muted' : 'badge-closed'}`}>{e.isDuplicate ? 'Mükerrer' : 'Hata'}</span>
@@ -294,6 +298,7 @@ export function ImportPage() {
                   </div>
                 ))}
               </div>
+              <Pagination state={errorPaging} label="satır" />
             </div>
           </>
         )}

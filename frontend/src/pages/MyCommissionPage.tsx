@@ -4,6 +4,7 @@ import type { CalculationLine, CommissionResult, Employee } from '../api/types'
 import { useSession } from '../auth/SessionContext'
 import { Alert } from '../components/Alert'
 import { Icons } from '../components/Icons'
+import { Pagination, usePagination } from '../components/Pagination'
 import { MONTHS, formatDate, formatDateTime, money, percent, periodLabel } from '../format'
 
 const DEFAULT_YEAR = 2026
@@ -236,52 +237,62 @@ export function MyCommissionPage() {
           </div>
 
           {grouped.map((group) => (
-            <div className="card card-flush" key={group.key}>
-              <div className="card-header">
-                <h2>{group.title}</h2>
-                <span className="muted">{group.lines.filter((l) => l.sale).length > 0 ? `${group.lines.filter((l) => l.sale).length} kayıt` : ''}</span>
-              </div>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Tür</th>
-                      <th>Tarih</th>
-                      <th>Kaynak / Belge</th>
-                      <th>Ürün</th>
-                      <th>Açıklama</th>
-                      <th className="num">Baz tutar</th>
-                      <th className="num">Oran</th>
-                      <th className="num">Prim</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {group.lines.map((line) => (
-                      <tr key={line.sequence} className={rowClass(line)}>
-                        <td className="num">{line.sequence}</td>
-                        <td>{lineTypeLabel(line.lineType)}</td>
-                        <td>{line.sale ? formatDate(line.sale.transactionDate) : ''}</td>
-                        <td className="mono">{line.sale ? `${line.sale.sourceSystem}-${line.sale.externalDocumentNo}` : ''}</td>
-                        <td>
-                          {line.sale ? line.sale.productName : ''}
-                          {line.sale && <span className="sub">{line.sale.productCode}</span>}
-                        </td>
-                        <td>{line.description}</td>
-                        <td className="num">{line.lineType === 'Total' || line.lineType === 'RuleSubtotal' || line.lineType === 'Tier' || line.sale ? money(line.baseAmount) : ''}</td>
-                        <td className="num">{percent(line.rate)}</td>
-                        <td className="num">{line.lineType === 'Excluded' ? '' : money(line.amount)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <LineGroupCard key={group.key} title={group.title} lines={group.lines} />
           ))}
         </>
       )}
 
       {!result && !error && <div className="card empty">{loading ? 'Hesaplanıyor…' : 'Personel ve dönem seçin.'}</div>}
     </>
+  )
+}
+
+function LineGroupCard({ title, lines }: { title: string; lines: CalculationLine[] }) {
+  const paging = usePagination(lines, 10)
+  const saleCount = lines.filter((l) => l.sale).length
+
+  return (
+    <div className="card card-flush">
+      <div className="card-header">
+        <h2>{title}</h2>
+        {saleCount > 0 && <span className="muted">{saleCount} kayıt</span>}
+      </div>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th className="num">#</th>
+              <th>Tür</th>
+              <th>Tarih</th>
+              <th>Kaynak / Belge</th>
+              <th>Ürün</th>
+              <th>Açıklama</th>
+              <th className="num">Baz tutar</th>
+              <th className="num">Oran</th>
+              <th className="num">Prim</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paging.slice.map((line) => (
+              <tr key={line.sequence} className={rowClass(line)}>
+                <td className="num">{line.sequence}</td>
+                <td>{lineTypeLabel(line.lineType)}</td>
+                <td className="nowrap">{line.sale ? formatDate(line.sale.transactionDate) : ''}</td>
+                <td className="mono">{line.sale ? `${line.sale.sourceSystem}-${line.sale.externalDocumentNo}` : ''}</td>
+                <td>
+                  {line.sale ? line.sale.productName : ''}
+                  {line.sale && <span className="sub">{line.sale.productCode}</span>}
+                </td>
+                <td>{line.description}</td>
+                <td className="num">{line.lineType === 'Total' || line.lineType === 'RuleSubtotal' || line.lineType === 'Tier' || line.sale ? money(line.baseAmount) : ''}</td>
+                <td className="num">{percent(line.rate)}</td>
+                <td className="num">{line.lineType === 'Excluded' ? '' : money(line.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Pagination state={paging} label="satır" />
+    </div>
   )
 }
