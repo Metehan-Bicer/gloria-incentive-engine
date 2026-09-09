@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Gloria.Incentive.Api/Gloria.Incentive.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Gloria.Incentive.Tests/Gloria.Incentive.Tests.csproj" />
+  </Folder>
+</Solution>
